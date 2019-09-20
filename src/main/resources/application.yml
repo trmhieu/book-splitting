@@ -1,0 +1,14 @@
+spring:
+    servlet.multipart:
+        max-file-size: 100MB
+        max-request-size: 100MB
+
+application:
+    file:
+        upload-directory: sample
+        secret-key: booksplitting-secret-key
+        security-provider: BC
+        crypto-algorithm:
+            name: MD5
+            content: AES/ECB/PKCS7Padding
+            key: AES
