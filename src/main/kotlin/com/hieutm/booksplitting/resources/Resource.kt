@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
-
 @RestController
 class Resource(private val fileService: FileService) {
 
@@ -18,15 +17,17 @@ class Resource(private val fileService: FileService) {
     fun upload(
         @RequestParam("file") file: MultipartFile,
         @RequestParam("parts") numberOfParts: Int
-    ): String {
+    ): ResponseEntity<Any> {
         val bytes = fileService.splitFile(file, numberOfParts)
         val fileInfo = fileService.buildFileInfo(file)
         fileService.zipFile(fileInfo, numberOfParts, bytes)
-        return ServletUriComponentsBuilder
+        val location = ServletUriComponentsBuilder
             .fromCurrentContextPath()
             .path("/download/")
             .path(fileInfo.getTargetFileNameWithoutExtension())
-            .toUriString()
+            .build()
+            .toUri()
+        return ResponseEntity.created(location).build()
     }
 
     @GetMapping("/download/{id}", produces = ["application/zip"])

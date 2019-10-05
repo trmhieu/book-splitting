@@ -1,6 +1,6 @@
 package com.hieutm.booksplitting.service
 
-import com.hieutm.booksplitting.configuration.FileConfiguration
+import com.hieutm.booksplitting.configuration.ApplicationConfiguration
 import org.apache.commons.codec.digest.DigestUtils
 import org.springframework.stereotype.Service
 import java.io.InputStream
@@ -10,7 +10,7 @@ import javax.crypto.spec.SecretKeySpec
 
 
 @Service
-class EncryptionDecryptionService(private val fileConfiguration: FileConfiguration) {
+class EncryptionDecryptionService(private val applicationConfiguration: ApplicationConfiguration) {
 
     fun encryptFileContent(inputStream: InputStream, size: Int): ByteArray {
         return doCrypto(Cipher.ENCRYPT_MODE, inputStream, size)
@@ -24,12 +24,12 @@ class EncryptionDecryptionService(private val fileConfiguration: FileConfigurati
         try {
             Security.addProvider(org.bouncycastle.jce.provider.BouncyCastleProvider())
             val secretKey = SecretKeySpec(
-                fileConfiguration.secretKey.toByteArray(),
-                fileConfiguration.fileKeyAlgorithm
+                applicationConfiguration.secretKey!!.toByteArray(),
+                applicationConfiguration.fileCryptoAlgorithm!!.key!!
             )
             val cipher = Cipher.getInstance(
-                fileConfiguration.fileContentCryptoAlgorithm,
-                fileConfiguration.securityprovider
+                applicationConfiguration.fileCryptoAlgorithm!!.content!!,
+                applicationConfiguration.securityProvider!!
             )
             cipher.init(cipherMode, secretKey)
             val inputBytes = ByteArray(size)
@@ -37,7 +37,6 @@ class EncryptionDecryptionService(private val fileConfiguration: FileConfigurati
             val outputBytes = cipher.doFinal(inputBytes)
             inputStream.close()
             return outputBytes
-
         } catch (ex: Exception) {
             throw Exception("Error during encrypting/decrypting file: $ex")
         }

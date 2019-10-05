@@ -1,6 +1,6 @@
 package com.hieutm.booksplitting.service
 
-import com.hieutm.booksplitting.configuration.FileConfiguration
+import com.hieutm.booksplitting.configuration.ApplicationConfiguration
 import com.hieutm.booksplitting.models.FileUploadInfo
 import org.apache.pdfbox.multipdf.Splitter
 import org.apache.pdfbox.pdmodel.PDDocument
@@ -18,28 +18,25 @@ import java.util.zip.ZipOutputStream
 
 @Service
 class FileService(
-    private val fileConfiguration: FileConfiguration,
+    private val applicationConfiguration: ApplicationConfiguration,
     private val encryptionDecryptionService: EncryptionDecryptionService
 ) {
-    private var splitter: Splitter
     private var uploadDir: Path
 
     init {
         try {
             uploadDir = Files.createDirectories(
-                Paths.get(fileConfiguration.uploadDir).toAbsolutePath().normalize()
+                Paths.get(applicationConfiguration.uploadDirectory!!).toAbsolutePath().normalize()
             )
-            splitter = Splitter()
         } catch (e: Exception) {
-            throw Exception("Could not create upload directory: ${e.message}")
+            throw Exception("Error during create upload directory: ${e.message}")
         }
-
     }
 
     fun buildFileInfo(file: MultipartFile): FileUploadInfo {
-        val fileName = StringUtils.cleanPath(file.originalFilename)
+        val fileName = StringUtils.cleanPath(file.originalFilename!!)
         var encryptedFileName = encryptionDecryptionService
-            .encryptFileName(fileName + LocalDateTime.now(), fileConfiguration.fileNameCryptoAlgorithm)
+            .encryptFileName(fileName + LocalDateTime.now(), applicationConfiguration.fileCryptoAlgorithm!!.name!!)
         encryptedFileName = encryptedFileName?.plus(".zip")
             ?: throw Exception("Encrypting file name for $fileName failed")
         return FileUploadInfo(uploadDir.resolve(encryptedFileName).toFile(), fileName)
@@ -48,9 +45,10 @@ class FileService(
     fun splitFile(file: MultipartFile, numberOfParts: Int): List<ByteArray> {
         try {
             val doc: PDDocument = PDDocument.load(file.inputStream)
-            var numberPageEachPart = (doc.numberOfPages / numberOfParts)
+            val numberPageEachPart = (doc.numberOfPages / numberOfParts)
                 .takeIf { it != 0 }
                 .let { it } ?: 1
+            val splitter = Splitter()
             splitter.setSplitAtPage(numberPageEachPart)
             val bytes = splitter.split(doc).map { pdDocument ->
                 val byteArrayOutputStream = ByteArrayOutputStream()
